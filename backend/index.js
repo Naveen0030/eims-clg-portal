@@ -8,6 +8,7 @@ const { authenticateToken } = require("./utilities");
 const OTPModel = require("./modals/otp.modal");
 const User = require("./modals/user.modal");
 const Course = require("./modals/course.modal");
+const config = require('./config');
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -110,17 +111,31 @@ app.post("/login", async (req, res) => {
 
 // Get User
 app.get("/get-user", authenticateToken, async (req, res) => {
-  const { user } = req.user;
+  try {
+    const { user } = req.user;
 
-  const isUser = await User.findOne({ _id: user._id });
-  console.log({ user });
-  if (!isUser) {
-    return res.sendStatus(401);
+    const isUser = await User.findOne({ _id: user._id });
+    console.log("User lookup result:", { found: !!isUser, userId: user._id });
+    
+    if (!isUser) {
+      console.log("User not found in database:", user._id);
+      return res.status(401).json({ 
+        error: true, 
+        message: "User not found in database" 
+      });
+    }
+    
+    return res.json({
+      user: isUser, // Return the fresh user data from database
+      message: "User data retrieved successfully"
+    });
+  } catch (error) {
+    console.error("Error in get-user endpoint:", error);
+    return res.status(500).json({
+      error: true,
+      message: "Internal server error"
+    });
   }
-  return res.json({
-    user,
-    message: ""
-  });
 });
 
 // Route to send OTP
@@ -296,18 +311,38 @@ app.get("/view-user/:id", authenticateToken, async (req, res) => {
   const { id } = req.params;
 
   try {
+    // Validate the ID format
+    if (!id || id.length !== 24) {
+      return res.status(400).json({ 
+        error: true, 
+        message: "Invalid user ID format" 
+      });
+    }
+
     // Fetch user by ID
     const userDetails = await User.findById(id).select("-password");
-    // console.log(userDetails)
+    console.log("View user request:", { requestedId: id, found: !!userDetails });
 
     if (!userDetails) {
-      return res.status(404).json({ error: true, message: "User not found" });
+      return res.status(404).json({ 
+        error: true, 
+        message: "User not found" 
+      });
     }
 
     res.status(200).json({ error: false, userDetails });
   } catch (error) {
     console.error("Error fetching user details:", error);
-    res.status(500).json({ error: true, message: "Failed to fetch user details" });
+    if (error.name === 'CastError') {
+      return res.status(400).json({ 
+        error: true, 
+        message: "Invalid user ID format" 
+      });
+    }
+    res.status(500).json({ 
+      error: true, 
+      message: "Failed to fetch user details" 
+    });
   }
 });
 
@@ -452,7 +487,14 @@ app.post("/enroll-course", authenticateToken, async (req, res) => {
       return res.status(404).json({ message: 'Course not found' });
     }
 
-    const response = await fetch('http://localhost:8000/facultyadvisor', {
+    // ===========================================
+    // 🔗 HOSTING DEPLOYMENT - CHANGE THIS LINK 🔗
+    // ===========================================
+    // When deploying, change this to your backend API endpoint
+    // This should match your deployed backend URL
+    // ===========================================
+    // Now using centralized configuration - update config.js instead
+    const response = await fetch(config.ENDPOINTS.FACULTY_ADVISOR, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -501,18 +543,33 @@ app.get("/enrolled-courses", authenticateToken, async (req, res) => {
     }).select("title courseCode instructor enrolledStudents");
 
     // Filter enrolledStudents to show only the current user's enrollment details
-    const enrolledCourses = courses.map((course) => {
+    const enrolledCourses = await Promise.all(courses.map(async (course) => {
       const studentDetails = course.enrolledStudents.find(
         (student) => student.studentId.toString() === user._id.toString()
       );
+
+      // Fetch instructor details
+      let instructorName = 'Unknown Instructor';
+      if (course.instructor) {
+        try {
+          const instructor = await User.findById(course.instructor).select('fullName');
+          if (instructor) {
+            instructorName = instructor.fullName;
+          }
+        } catch (error) {
+          console.error('Error fetching instructor:', error);
+        }
+      }
 
       return {
         title: course.title,
         courseCode: course.courseCode,
         instructor: course.instructor,
+        instructorName: instructorName,
         status: studentDetails.status,
+        enrollmentDate: studentDetails.enrollmentDate || studentDetails.createdAt || new Date()
       };
-    });
+    }));
 
     res.status(200).json({ error: false, enrolledCourses });
   } catch (error) {

@@ -13,15 +13,31 @@ const SuccessEnrolled = () => {
 
   const fetchInstructorName = async (instructorId) => {
     try {
+      if (!instructorId) {
+        console.warn("No instructor ID provided");
+        return;
+      }
+
       const response = await axiosInstance.get(`/view-user/${instructorId}`);
-      if (response.data && !response.data.error) {
+      if (response.data && !response.data.error && response.data.userDetails) {
         setInstructors((prevInstructors) => ({
           ...prevInstructors,
-          [instructorId]: response.data.userDetails.fullName, // Store instructor name
+          [instructorId]: response.data.userDetails.fullName || "Unknown Instructor",
+        }));
+      } else {
+        // Set fallback name if API returns error
+        setInstructors((prevInstructors) => ({
+          ...prevInstructors,
+          [instructorId]: "Unknown Instructor",
         }));
       }
     } catch (error) {
       console.error("Error fetching instructor details:", error);
+      // Set fallback name on error
+      setInstructors((prevInstructors) => ({
+        ...prevInstructors,
+        [instructorId]: "Unknown Instructor",
+      }));
     }
   };
 

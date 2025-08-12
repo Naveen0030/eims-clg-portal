@@ -9,7 +9,7 @@ import InstructorDashboard from "./pages/Dashboard/InstructorDashboard";
 import AdminDashboard from "./pages/Dashboard/AdminDashboard";
 import AddCourse from "./pages/Dashboard/Courses/AddCourse";
 import EnrollCourse from "./pages/Dashboard/Courses/EnrollCourse";
-import SuccessEnrolled from "./pages/Dashboard/Courses/SuccessEnrolled";
+import EnrolledCourses from "./pages/Dashboard/Courses/EnrolledCourses";
 import CourseValidation from "./pages/Dashboard/Work/CourseValidation";
 import MyCourses from "./pages/Dashboard/Work/Mycourses";
 import Favalidation from "./pages/Dashboard/Work/faValidation";
@@ -37,15 +37,13 @@ const App = () => {
         <Route path="/all-users" exact element={<AllUsers />} />
         <Route path="/view-user/:id" exact element={<ViewUser />} />
         {/* Student */}
-        <Route path="/manage-users" exact element={<Users />} />
         <Route path="/enroll-course" exact element={<EnrollCourse />} />
-        <Route path="/enrolled-courses" exact element={<SuccessEnrolled />} />
+        <Route path="/enrolled-courses" exact element={<EnrolledCourses />} />
         {/* Instructor */}
         <Route path="/verify-students" exact element={<CourseValidation />} />
         <Route path="/my-courses" exact element={<MyCourses />} />
         <Route path="/students" element={<CourseStudents />} />
         <Route path="/verify-fa" element={<Favalidation />} />
-
       </Routes>
     </Router>
   );

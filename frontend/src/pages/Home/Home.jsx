@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from "react";
-import Navbar from "../../Components/Navbar";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosinstance";
-import StudentDashboard from "../../pages/Dashboard/StudentDashboard";
-import InstructorDashboard from "../../pages/Dashboard/InstructorDashboard";
-import AdminDashboard from "../../pages/Dashboard/AdminDashboard";
+import LoadingSpinner from "../../Components/LoadingSpinner";
 
 const Home = () => {
   const [userInfo, setUserInfo] = useState(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   // Get User Info
@@ -16,118 +14,45 @@ const Home = () => {
       const response = await axiosInstance.get("/get-user");
       if (response.data && response.data.user) {
         setUserInfo(response.data.user);
+        // Redirect to appropriate dashboard
+        const { category } = response.data.user;
+        if (category === "Student") {
+          navigate("/student-dashboard");
+        } else if (category === "Instructor") {
+          navigate("/instructor-dashboard");
+        } else if (category === "Admin") {
+          navigate("/admin-dashboard");
+        }
       }
     } catch (error) {
       if (error.response && error.response.status === 401) {
         localStorage.clear();
         navigate("/login");
       }
+    } finally {
+      setLoading(false);
     }
-  };
-
-  // Search note function
-  const onSearchNote = (query) => {
-    console.log("Search query:", query);
-    // Implement your search functionality here
-  };
-
-  // Clear search function
-  const handleClearSearch = () => {
-    console.log("Search cleared");
-    // Implement your clear search functionality here
   };
 
   useEffect(() => {
     getUserInfo();
   }, []);
 
-  // Render appropriate dashboard based on user category
-  const renderDashboard = () => {
-    if (!userInfo) {
-      return <h2>Loading...</h2>;
-    }
-
-    switch (userInfo.category) {
-      case "Student":
-        return <StudentDashboard />;
-      case "Instructor":
-        return <InstructorDashboard />;
-      case "Admin":
-        return <AdminDashboard />;
-      default:
-        return <h2>Invalid user category</h2>;
-    }
-  };
-
-  return (
-    <>
-      <Navbar
-        userInfo={userInfo}
-      />
-      <div>
-        {renderDashboard()}
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <LoadingSpinner size="lg" text="Loading..." />
       </div>
-    </>
-  );
+    );
+  }
+
+  // If no user info, redirect to login
+  if (!userInfo) {
+    navigate("/login");
+    return null;
+  }
+
+  return null; // This should not be reached as we redirect above
 };
 
 export default Home;
-
-// import React, { useEffect, useState } from "react";
-// import Navbar from "../../Components/Navbar";
-// import { useNavigate } from "react-router-dom";
-// import axiosInstance from "../../utils/axiosinstance";
-// import StudentDashboard from "../../pages/Dashboard/StudentDashboard";
-// import InstructorDashboard from "../../pages/Dashboard/InstructorDashboard";
-// import AdminDashboard from "../../pages/Dashboard/AdminDashboard";
-
-// const Home = () => {
-//   const [userInfo, setUserInfo] = useState(null);
-//   const navigate = useNavigate();
-
-//   // Get User Info
-//   const getUserInfo = async () => {
-//     try {
-//       const response = await axiosInstance.get("/get-user");
-//       if (response.data && response.data.user) {
-//         setUserInfo(response.data.user);
-//       }
-//     } catch (error) {
-//       if (error.response.status === 401) {
-//         localStorage.clear();
-//         navigate("/login");
-//       }
-//     }
-//   };
-
-//   // Search note function
-//   const onSearchNote = (query) => {
-//     console.log("Search query:", query);
-//     // Implement your search functionality here
-//   };
-
-//   // Clear search function
-//   const handleClearSearch = () => {
-//     console.log("Search cleared");
-//     // Implement your clear search functionality here
-//   };
-
-//   useEffect(() => {
-//     getUserInfo();
-//   }, []);
-
-//   return (
-//     <>
-//       <Navbar
-//         userInfo={userInfo}
-//         onSearchNote={onSearchNote}
-//         handleClearSearch={handleClearSearch}
-//       />
-//       <div>
-//         <h1>Welcome to Home page</h1>
-//       </div>
-//     </>
-//   );
-// };
-
-// export default Home;
